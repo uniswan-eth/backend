@@ -1,10 +1,10 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 export default async (req, res) => {
     const { db } = await connectToDatabase();
-    await db
+    const bundles = await db
         .collection("bundles")
         .insertOne({
-            "_id": "test",
+            "_id": "hs",
             "bundle": [
                 {
                     "collectionAddress": "t",
@@ -12,4 +12,5 @@ export default async (req, res) => {
                 }
             ]
         })
+    res.json(bundles[0]);
 };

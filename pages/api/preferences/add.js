@@ -18,10 +18,10 @@ const allowCors = fn => async (req, res) => {
 const handler = async (req, res) => {
     const { db } = await connectToDatabase();
     const body = req.body;
-    const preferences = await db
-        .collection("preferences")
+    const orders = await db
+        .collection("orders")
         .insertOne(body)
-    res.json(preferences[0]);
+    res.json(orders[0]);
 }
 
 module.exports = allowCors(handler)

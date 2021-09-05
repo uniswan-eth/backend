@@ -6,6 +6,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@0x/order-utils": "^8.4.0",
     "mongodb": "^3.5.9",
     "next": "latest",
     "react": "^17.0.2",

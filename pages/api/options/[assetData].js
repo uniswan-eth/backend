@@ -23,15 +23,12 @@ function bundleCanFillOrder(signedOrder, assetData) {
         signedOrder.order.takerAssetData
     );
 
-    var hi = assetDataUtils.decodeMultiAssetData(
+    var bundleEncoded = assetDataUtils.decodeMultiAssetData(
         assetData
     );
 
-    console.log(hi.nestedAssetData)
-    console.log(inter.nestedAssetData)
-    console.log("_________________")
     for (let j = 0; j < inter.nestedAssetData.length; j++) {
-        if (!hi.nestedAssetData.includes(inter.nestedAssetData[j]))
+        if (!bundleEncoded.nestedAssetData.includes(inter.nestedAssetData[j]))
             return false;
     }
     return true;

@@ -28,8 +28,7 @@ export default async (req, res) => {
         .find({})
         .toArray();
 
-    // TODO: Check if the orders are active 
-    gotIts = [];
+    gotIts = [assetData];
 
     var options = []
     for (let i = 0; i < orders.length; i++) {

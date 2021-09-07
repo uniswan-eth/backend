@@ -7,7 +7,7 @@ const MAX_ORDERS = 6;
 function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
-        const orderDecoded = assetDataUtils.decodeMultiAssetData(
+        const takerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
             signedOrders[i].order.takerAssetData
         );
 
@@ -17,16 +17,33 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
 
         // Loop through all the assets wished for by the offer, and remove them from our asset pool
         var orderFillable = true;
-        for (let j = 0; j < orderDecoded.nestedAssetData.length; j++) {
-            const index = startingDecoded.nestedAssetData.indexOf(orderDecoded.nestedAssetData[j]);
+        for (let j = 0; j < takerAssetsDecoded.nestedAssetData.length; j++) {
+            const index = startingDecoded.nestedAssetData.indexOf(takerAssetsDecoded.nestedAssetData[j]);
+            // If we have some of this asset...
             if (index > -1) {
-                startingDecoded.nestedAssetData.splice(index, 1);
-                startingDecoded.amounts.splice(index, 1)
-            } else {
-                // If we can't satisfy the order, break
-                orderFillable = false;
-                break;
+                // Try to fill the order.
+                startingDecoded.amounts[index] -= takerAssetsDecoded.amounts[i]
+                if (startingDecoded.amounts[index] < 0) {
+                    orderFillable = false;
+                    break;
+                }
             }
+        }
+
+        const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+            signedOrders[i].order.takerAssetData
+        );
+        // Loop through all the assets given in exchange by the offer, and add them to our asset pool
+        for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
+            const index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
+            // If we don't already have some of this asset...
+            if (index === -1) {
+                // Add it to our list
+                index = startingDecoded.nestedAssetData.length;
+                startingDecoded.nestedAssetData.push(makerAssetsDecoded.nestedAssetData[j]);
+                startingDecoded.amounts.push(0);
+            }
+            startingDecoded.amounts[index] += makerAssetsDecoded.amounts[i]
         }
 
         if (orderFillable) {

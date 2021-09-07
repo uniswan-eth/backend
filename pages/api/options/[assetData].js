@@ -1,18 +1,22 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
 
-var gotIts = [];
+const MAX_CHAIN_LENGTH = 6;
 
 function buildSwapChain(chain, signedOrders) {
     var toReturn = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (
-            bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData) && !gotIts.includes(signedOrders[i].order.makerAssetData)
+            bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData)
         ) {
-            gotIts.push(signedOrders[i].order.makerAssetData)
             const newChain = [...chain, signedOrders[i]]
             toReturn.push(newChain);
-            if (newChain.length < 5) toReturn = toReturn.concat(buildSwapChain(newChain, signedOrders));
+
+            // This order has been executed, so remove it from the list.
+            const signedOrdersNew = signedOrders.slice();
+            signedOrdersNew.splice(i, 1);
+
+            if (newChain.length === MAX_CHAIN_LENGTH) toReturn = toReturn.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
     return toReturn;
@@ -43,7 +47,6 @@ export default async (req, res) => {
         .find({})
         .toArray();
 
-    gotIts = [assetData];
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (bundleCanFillOrder(signedOrders[i], assetData)) {

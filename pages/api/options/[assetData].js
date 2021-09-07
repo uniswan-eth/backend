@@ -52,7 +52,11 @@ export default async (req, res) => {
         if (bundleCanFillOrder(signedOrders[i], assetData)) {
             options.push([signedOrders[i]]);
 
-            options = options.concat(buildSwapChain([signedOrders[i]], signedOrders));
+            // This order has been executed, so remove it from the list.
+            const signedOrdersNew = signedOrders.slice();
+            signedOrdersNew.splice(i, 1);
+
+            options = options.concat(buildSwapChain([signedOrders[i]], signedOrdersNew));
         }
     }
 

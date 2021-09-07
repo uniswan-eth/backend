@@ -4,25 +4,26 @@ import { assetDataUtils } from "@0x/order-utils";
 const MAX_ORDERS = 6;
 
 // "With a given `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible assets I can end up with?"
-function stateTransition(bundle, signedOrders, executedSignedOrders) {
+function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
         const orderDecoded = assetDataUtils.decodeMultiAssetData(
             signedOrders[i].order.takerAssetData
         );
 
-        const bundleDecoded = assetDataUtils.decodeMultiAssetData(
-            bundle
+        const startingDecoded = assetDataUtils.decodeMultiAssetData(
+            startingAssetData
         );
 
+        // Loop through all the assets wished for by the offer, and remove them from our asset pool
         var orderFillable = true;
-        var newBundleDecoded = bundleDecoded; // make sure this isn't by reference
         for (let j = 0; j < orderDecoded.nestedAssetData.length; j++) {
-            const index = newBundleDecoded.nestedAssetData.indexOf(orderDecoded.nestedAssetData[j]);
+            const index = startingDecoded.nestedAssetData.indexOf(orderDecoded.nestedAssetData[j]);
             if (index > -1) {
-                newBundleDecoded.nestedAssetData.splice(index, 1);
-                newBundleDecoded.amounts.splice(index, 1)
+                startingDecoded.nestedAssetData.splice(index, 1);
+                startingDecoded.amounts.splice(index, 1)
             } else {
+                // If we can't satisfy the order, break
                 orderFillable = false;
                 break;
             }
@@ -30,8 +31,8 @@ function stateTransition(bundle, signedOrders, executedSignedOrders) {
 
         if (orderFillable) {
             const newBundleEncoded = assetDataUtils.encodeMultiAssetData(
-                newBundleDecoded.amounts,
-                newBundleDecoded.nestedAssetData
+                startingDecoded.amounts,
+                startingDecoded.nestedAssetData
             );
 
             const newExecutedSignedOrders = [...executedSignedOrders, signedOrders[i]]

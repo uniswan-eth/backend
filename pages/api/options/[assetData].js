@@ -1,21 +1,25 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
 
-var gotIts = [];
+const MAX_CHAIN_LENGTH = 6;
 
 function buildSwapChain(chain, signedOrders) {
-    var toReturn = []
+    var options = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (
-            bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData) && !gotIts.includes(signedOrders[i].order.makerAssetData)
+            bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData)
         ) {
-            gotIts.push(signedOrders[i].order.makerAssetData)
             const newChain = [...chain, signedOrders[i]]
-            toReturn.push(newChain);
-            if (newChain.length < 5) toReturn = toReturn.concat(buildSwapChain(newChain, signedOrders));
+            options.push(newChain);
+
+            // This order has been executed, so remove it from the list.
+            const signedOrdersNew = signedOrders.slice();
+            signedOrdersNew.splice(i, 1);
+
+            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
-    return toReturn;
+    return options;
 }
 
 function bundleCanFillOrder(signedOrder, assetData) {
@@ -43,15 +47,18 @@ export default async (req, res) => {
         .find({})
         .toArray();
 
-    gotIts = [assetData];
     var options = []
+    var chain = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (bundleCanFillOrder(signedOrders[i], assetData)) {
-            options.push([signedOrders[i]]);
+            const newChain = [...chain, signedOrders[i]]
+            options.push(newChain);
 
-            gotIts.push(signedOrders[i].order.makerAssetData)
+            // This order has been executed, so remove it from the list.
+            const signedOrdersNew = signedOrders.slice();
+            signedOrdersNew.splice(i, 1);
 
-            options = options.concat(buildSwapChain([signedOrders[i]], signedOrders));
+            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
 

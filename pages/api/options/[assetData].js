@@ -35,7 +35,7 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
         );
         // Loop through all the assets given in exchange by the offer, and add them to our asset pool
         for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
-            const index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
+            var index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
             // If we don't already have some of this asset...
             if (index === -1) {
                 // Add it to our list

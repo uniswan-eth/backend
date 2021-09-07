@@ -4,22 +4,22 @@ import { assetDataUtils } from "@0x/order-utils";
 const MAX_CHAIN_LENGTH = 6;
 
 function buildSwapChain(chain, signedOrders) {
-    var toReturn = []
+    var options = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (
             bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData)
         ) {
             const newChain = [...chain, signedOrders[i]]
-            toReturn.push(newChain);
+            options.push(newChain);
 
             // This order has been executed, so remove it from the list.
             const signedOrdersNew = signedOrders.slice();
             signedOrdersNew.splice(i, 1);
 
-            if (newChain.length === MAX_CHAIN_LENGTH) toReturn = toReturn.concat(buildSwapChain(newChain, signedOrdersNew));
+            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
-    return toReturn;
+    return options;
 }
 
 function bundleCanFillOrder(signedOrder, assetData) {
@@ -48,15 +48,17 @@ export default async (req, res) => {
         .toArray();
 
     var options = []
+    var chain = []
     for (let i = 0; i < signedOrders.length; i++) {
         if (bundleCanFillOrder(signedOrders[i], assetData)) {
-            options.push([signedOrders[i]]);
+            const newChain = [...chain, signedOrders[i]]
+            options.push(newChain);
 
             // This order has been executed, so remove it from the list.
             const signedOrdersNew = signedOrders.slice();
             signedOrdersNew.splice(i, 1);
 
-            options = options.concat(buildSwapChain([signedOrders[i]], signedOrdersNew));
+            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
 

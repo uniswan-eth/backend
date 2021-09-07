@@ -52,8 +52,6 @@ export default async (req, res) => {
         if (bundleCanFillOrder(signedOrders[i], assetData)) {
             options.push([signedOrders[i]]);
 
-            gotIts.push(signedOrders[i].order.makerAssetData)
-
             options = options.concat(buildSwapChain([signedOrders[i]], signedOrders));
         }
     }

@@ -16,7 +16,7 @@ function buildSwapChain(chain, signedOrders) {
             const signedOrdersNew = signedOrders.slice();
             signedOrdersNew.splice(i, 1);
 
-            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
+            if (newChain.length < MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
     return options;
@@ -58,7 +58,7 @@ export default async (req, res) => {
             const signedOrdersNew = signedOrders.slice();
             signedOrdersNew.splice(i, 1);
 
-            if (newChain.length === MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
+            if (newChain.length < MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
         }
     }
 

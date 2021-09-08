@@ -1,4 +1,4 @@
-import { connectToDatabase } from "../../../lib/mongodb";
+import { connectToDatabase } from "../../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
 import { BigNumber } from "@0x/utils";
 

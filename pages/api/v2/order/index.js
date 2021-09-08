@@ -1,4 +1,4 @@
-import { connectToDatabase } from "../../../lib/mongodb";
+import { connectToDatabase } from "../../../../lib/mongodb";
 
 const allowCors = fn => async (req, res) => {
     res.setHeader('Access-Control-Allow-Credentials', true)

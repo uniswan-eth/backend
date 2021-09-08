@@ -9,7 +9,7 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
         const takerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
-            signedOrders[i].order.takerAssetData
+            signedOrders[i].takerAssetData
         );
 
         const startingDecoded = assetDataUtils.decodeMultiAssetData(
@@ -35,7 +35,7 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
         }
         if (orderFillable) {
             const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
-                signedOrders[i].order.makerAssetData
+                signedOrders[i].makerAssetData
             );
 
             // Loop through all the assets given in exchange by the offer, and add them to our asset pool

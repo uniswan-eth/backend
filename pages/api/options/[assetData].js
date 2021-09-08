@@ -1,41 +1,71 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
+import { BigNumber } from "@0x/utils";
 
-const MAX_CHAIN_LENGTH = 6;
+const MAX_ORDERS = 2;
 
-function buildSwapChain(chain, signedOrders) {
+// "With a given `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible assets I can end up with?"
+function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
-        if (
-            bundleCanFillOrder(signedOrders[i], chain[chain.length - 1].order.makerAssetData)
-        ) {
-            const newChain = [...chain, signedOrders[i]]
-            options.push(newChain);
+        const takerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+            signedOrders[i].order.takerAssetData
+        );
 
-            // This order has been executed, so remove it from the list.
+        const startingDecoded = assetDataUtils.decodeMultiAssetData(
+            startingAssetData
+        );
+
+        // Loop through all the assets wished for by the offer, and remove them from our asset pool
+        var orderFillable = true;
+        for (let j = 0; j < takerAssetsDecoded.nestedAssetData.length; j++) {
+            const index = startingDecoded.nestedAssetData.indexOf(takerAssetsDecoded.nestedAssetData[j]);
+            // If we have some of this asset...
+            if (index > -1) {
+                // Try to fill the order.
+                startingDecoded.amounts[index] = startingDecoded.amounts[index].minus(takerAssetsDecoded.amounts[j]);
+                if (startingDecoded.amounts[index].toNumber() < 0) {
+                    orderFillable = false;
+                    break;
+                }
+            } else {
+                orderFillable = false;
+                break;
+            }
+        }
+        if (orderFillable) {
+            const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+                signedOrders[i].order.makerAssetData
+            );
+
+            // Loop through all the assets given in exchange by the offer, and add them to our asset pool
+            for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
+                var index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
+                // If we don't already have some of this asset...
+                if (index === -1) {
+                    // Add it to our list
+                    index = startingDecoded.nestedAssetData.length;
+                    startingDecoded.nestedAssetData.push(makerAssetsDecoded.nestedAssetData[j]);
+                    startingDecoded.amounts.push(new BigNumber(0));
+                }
+                startingDecoded.amounts[index] = startingDecoded.amounts[index].plus(makerAssetsDecoded.amounts[j]);
+            }
+
+            const newBundleEncoded = assetDataUtils.encodeMultiAssetData(
+                startingDecoded.amounts,
+                startingDecoded.nestedAssetData
+            );
+
+            const newExecutedSignedOrders = [...executedSignedOrders, signedOrders[i]]
+            options.push(newExecutedSignedOrders);
+
             const signedOrdersNew = signedOrders.slice();
             signedOrdersNew.splice(i, 1);
 
-            if (newChain.length < MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
+            if (newExecutedSignedOrders.length < MAX_ORDERS) options = options.concat(stateTransition(newBundleEncoded, signedOrdersNew, newExecutedSignedOrders));
         }
     }
     return options;
-}
-
-function bundleCanFillOrder(signedOrder, assetData) {
-    var inter = assetDataUtils.decodeMultiAssetData(
-        signedOrder.order.takerAssetData
-    );
-
-    var bundleEncoded = assetDataUtils.decodeMultiAssetData(
-        assetData
-    );
-
-    for (let j = 0; j < inter.nestedAssetData.length; j++) {
-        if (!bundleEncoded.nestedAssetData.includes(inter.nestedAssetData[j]))
-            return false;
-    }
-    return true;
 }
 
 export default async (req, res) => {
@@ -47,20 +77,8 @@ export default async (req, res) => {
         .find({})
         .toArray();
 
-    var options = []
-    var chain = []
-    for (let i = 0; i < signedOrders.length; i++) {
-        if (bundleCanFillOrder(signedOrders[i], assetData)) {
-            const newChain = [...chain, signedOrders[i]]
-            options.push(newChain);
+    var options = stateTransition(assetData, signedOrders, [])
 
-            // This order has been executed, so remove it from the list.
-            const signedOrdersNew = signedOrders.slice();
-            signedOrdersNew.splice(i, 1);
-
-            if (newChain.length < MAX_CHAIN_LENGTH) options = options.concat(buildSwapChain(newChain, signedOrdersNew));
-        }
-    }
-
+    console.log(options.length)
     res.json(options);
 };

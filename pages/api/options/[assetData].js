@@ -1,7 +1,8 @@
 import { connectToDatabase } from "../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
+import { BigNumber } from "@0x/utils";
 
-const MAX_ORDERS = 6;
+const MAX_ORDERS = 2;
 
 // "With a given `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible assets I can end up with?"
 function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {
@@ -22,31 +23,34 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
             // If we have some of this asset...
             if (index > -1) {
                 // Try to fill the order.
-                startingDecoded.amounts[index] -= takerAssetsDecoded.amounts[i]
-                if (startingDecoded.amounts[index] < 0) {
+                startingDecoded.amounts[index] = startingDecoded.amounts[index].minus(takerAssetsDecoded.amounts[j]);
+                if (startingDecoded.amounts[index].toNumber() < 0) {
                     orderFillable = false;
                     break;
                 }
+            } else {
+                orderFillable = false;
+                break;
             }
         }
-
-        const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
-            signedOrders[i].order.takerAssetData
-        );
-        // Loop through all the assets given in exchange by the offer, and add them to our asset pool
-        for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
-            var index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
-            // If we don't already have some of this asset...
-            if (index === -1) {
-                // Add it to our list
-                index = startingDecoded.nestedAssetData.length;
-                startingDecoded.nestedAssetData.push(makerAssetsDecoded.nestedAssetData[j]);
-                startingDecoded.amounts.push(0);
-            }
-            startingDecoded.amounts[index] += makerAssetsDecoded.amounts[i]
-        }
-
         if (orderFillable) {
+            const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+                signedOrders[i].order.makerAssetData
+            );
+
+            // Loop through all the assets given in exchange by the offer, and add them to our asset pool
+            for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
+                var index = startingDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
+                // If we don't already have some of this asset...
+                if (index === -1) {
+                    // Add it to our list
+                    index = startingDecoded.nestedAssetData.length;
+                    startingDecoded.nestedAssetData.push(makerAssetsDecoded.nestedAssetData[j]);
+                    startingDecoded.amounts.push(new BigNumber(0));
+                }
+                startingDecoded.amounts[index] = startingDecoded.amounts[index].plus(makerAssetsDecoded.amounts[j]);
+            }
+
             const newBundleEncoded = assetDataUtils.encodeMultiAssetData(
                 startingDecoded.amounts,
                 startingDecoded.nestedAssetData
@@ -75,5 +79,6 @@ export default async (req, res) => {
 
     var options = stateTransition(assetData, signedOrders, [])
 
+    console.log(options.length)
     res.json(options);
 };

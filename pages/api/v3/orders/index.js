@@ -6,8 +6,10 @@ export default async (req, res) => {
         .collection("orders")
         .find(req.query)
         .toArray();
+    const apiOrders = []
     for (let i = 0; i < orders.length; i++) {
         delete orders[i]._id;
+        apiOrders.push({ signedOrder: orders[i], metadata: {} })
     }
-    res.json(orders);
+    res.json(apiOrders);
 };

@@ -72,12 +72,12 @@ export default async (req, res) => {
     const { db } = await connectToDatabase();
     const { assetData } = req.query;
 
-    const signedOrders = await db
+    const orders = await db
         .collection("orders")
         .find({})
         .toArray();
 
-    var options = stateTransition(assetData, signedOrders, [])
+    var options = stateTransition(assetData, orders.records.map((x) => x.order), [])
 
     console.log(options.length)
     res.json(options);

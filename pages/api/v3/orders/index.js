@@ -11,5 +11,10 @@ export default async (req, res) => {
         delete orders[i]._id;
         apiOrders.push({ signedOrder: orders[i], metadata: {} })
     }
-    res.json(apiOrders);
+    res.json({
+        total: apiOrders.length,
+        page: 1,
+        perPage: apiOrders.length,
+        records: apiOrders
+    });
 };

@@ -2,7 +2,7 @@ import { connectToDatabase } from "../../../../lib/mongodb";
 import { assetDataUtils } from "@0x/order-utils";
 import { BigNumber } from "@0x/utils";
 
-const MAX_ORDERS = 4;
+const MAX_ORDERS = 3;
 
 // "With a given `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible assets I can end up with?"
 function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {

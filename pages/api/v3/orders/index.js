@@ -9,6 +9,7 @@ export default async (req, res) => {
     const apiOrders = []
     for (let i = 0; i < orders.length; i++) {
         delete orders[i]._id;
+        delete orders[i].signature
         apiOrders.push({ order: orders[i], metadata: {} })
     }
     res.json({

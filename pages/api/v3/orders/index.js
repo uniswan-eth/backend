@@ -6,5 +6,8 @@ export default async (req, res) => {
         .collection("orders")
         .find(req.query)
         .toArray();
+    for (let i = 0; i < orders.length; i++) {
+        delete orders[i]._id;
+    }
     res.json(orders);
 };

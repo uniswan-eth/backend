@@ -77,7 +77,7 @@ export default async (req, res) => {
         .find({})
         .toArray();
 
-    var options = stateTransition(assetData, orders.records.map((x) => x.order), [])
+    var options = stateTransition(assetData, orders, [])
 
     console.log(options.length)
     res.json(options);

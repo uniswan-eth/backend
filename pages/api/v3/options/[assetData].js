@@ -4,15 +4,15 @@ import { BigNumber } from "@0x/utils";
 
 const MAX_ORDERS = 3;
 
-// "With a given `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible assets I can end up with?"
+// "With my `bundle` of assets, and an orderbook of `signedOrders`, what are all the possible asset bundles I can end up with?"
 function stateTransition(startingAssetData, signedOrders, executedSignedOrders) {
     var options = []
     for (let i = 0; i < signedOrders.length; i++) {
-        const takerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+        const takerAssetsDecoded = assetDataUtils.decodeAssetDataOrThrow(
             signedOrders[i].takerAssetData
         );
 
-        const startingDecoded = assetDataUtils.decodeMultiAssetData(
+        const startingDecoded = assetDataUtils.decodeAssetDataOrThrow(
             startingAssetData
         );
 
@@ -34,7 +34,7 @@ function stateTransition(startingAssetData, signedOrders, executedSignedOrders) 
             }
         }
         if (orderFillable) {
-            const makerAssetsDecoded = assetDataUtils.decodeMultiAssetData(
+            const makerAssetsDecoded = assetDataUtils.decodeAssetDataOrThrow(
                 signedOrders[i].makerAssetData
             );
 
@@ -79,6 +79,5 @@ export default async (req, res) => {
 
     var options = stateTransition(assetData, orders, [])
 
-    console.log(options.length)
     res.json(options);
 };

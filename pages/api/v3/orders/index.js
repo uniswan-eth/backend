@@ -12,6 +12,7 @@ export default async (req, res) => {
         delete orders[i].signature
         apiOrders.push({ order: orders[i], metaData: {} })
     }
+
     res.json({
         total: apiOrders.length,
         page: 1,

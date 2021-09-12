@@ -18,6 +18,8 @@ const allowCors = fn => async (req, res) => {
 const handler = async (req, res) => {
     const { db } = await connectToDatabase();
     const body = req.body;
+    body.makerAddress = body.makerAddress.toLowerCase();
+
     const orders = await db
         .collection("orders")
         .insertOne(body);

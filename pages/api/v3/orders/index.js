@@ -41,6 +41,7 @@ export default async (req, res) => {
     res.json({
         total: await db
             .collection("orders")
+            .find(req.query)
             .count(),
         page: page,
         perPage: perPage,

@@ -1,40 +1,49 @@
 import EXCHANGEABI from "../../../../abis/Exchange.json";
 import { connectToDatabase } from "../../../../lib/mongodb";
 import { ethers } from "ethers";
-import { orderHashUtils } from "@0x/order-utils";
 
 const EXCHANGE_ADDRESS = "0x1f98206be961f98d0c2d2e5f7d965244b2f2129a";
 
 export default async (req, res) => {
     const { db } = await connectToDatabase();
+    const page = req.query.page || 1;
+    const perPage = req.query.perPage || 10;
+
     const orders = await db
         .collection("orders")
         .find(req.query)
+        .skip((page - 1) * perPage)
+        .limit(perPage)
         .toArray();
-    const apiOrders = []
 
-    var provider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com');
-    var collection = new ethers.Contract(
+    const provider = new ethers.providers.JsonRpcProvider('https://polygon-rpc.com');
+    const collection = new ethers.Contract(
         EXCHANGE_ADDRESS,
         EXCHANGEABI,
         provider
     );
 
-    for (let i = 0; i < orders.length; i++) {
-        var isCancelled = await collection.cancelled(orderHashUtils.getOrderHash(orders[i]));
-        var isFilled = await collection.filled(orderHashUtils.getOrderHash(orders[i]));
+    var validOrders = []
+    await Promise.all(
+        orders.map(async (order) => {
+            const orderInfo = await collection.getOrderInfo(order);
 
-        if (!isCancelled && isFilled.toNumber() === 0) {
-            delete orders[i]._id;
-            delete orders[i].signature;
-            apiOrders.push({ order: orders[i], metaData: {} });
-        }
-    }
+            if (orderInfo.orderStatus === 3) {
+                validOrders.push({ order: order, metaData: {} });
+            } else {
+                await db
+                    .collection("orders")
+                    .remove(order);
+            }
+        })
+    )
 
     res.json({
-        total: apiOrders.length,
-        page: 1,
-        perPage: apiOrders.length,
-        records: apiOrders
+        total: await db
+            .collection("orders")
+            .count(),
+        page: page,
+        perPage: perPage,
+        records: validOrders
     });
 };

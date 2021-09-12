@@ -23,7 +23,7 @@ export default async (req, res) => {
         provider
     );
 
-    var validOrders = []
+    var validOrders = [];
     await Promise.all(
         orders.map(async (order) => {
             const orderInfo = await collection.getOrderInfo(order);
@@ -36,7 +36,7 @@ export default async (req, res) => {
                     .remove(order);
             }
         })
-    )
+    );
 
     res.json({
         total: await db

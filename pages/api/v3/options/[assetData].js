@@ -1,4 +1,4 @@
-import { connectToDatabase } from "../../../../lib/mongodb";
+import { HttpClient } from "@0x/connect";
 import { assetDataUtils } from "@0x/order-utils";
 import { BigNumber } from "@0x/utils";
 
@@ -76,17 +76,14 @@ function stateTransition(startingAssetData, orders, executedOrders) {
 }
 
 export default async (req, res) => {
-    const { db } = await connectToDatabase();
     const { assetData } = req.query;
 
+    possibleFinalPools = new Set();
     possibleFinalPools.add(assetData);
 
-    const orderTable = await db
-        .collection("orders")
-        .find({})
-        .toArray();
-
-    const orders = orderTable;
+    const orderClient = new HttpClient(DB_BASE_URL);
+    const json = await orderClient.getOrdersAsync();
+    const orders = json.records.map((r) => r.order);
 
     const options = stateTransition(assetData, orders, [])
 

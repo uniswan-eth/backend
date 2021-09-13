@@ -5,28 +5,22 @@ export default async (req, res) => {
     const page = req.query.page || 1;
     const perPage = req.query.perPage || 10;
 
-    const orders = await db
+    const orderTable = await db
         .collection("orders")
-        .find(req.query)
+        .find(req.query);
+
+    var orders = await orderTable
         .skip((page - 1) * perPage)
         .limit(perPage)
         .toArray();
 
 
-
-    var validOrders = [];
-    await Promise.all(
-        orders.map(async (order) => {
-            validOrders.push({ order: order, metaData: {} });
-
-        })
-    );
+    var validOrders = orders.map((order) => {
+        return { order: order, metaData: {} };
+    })
 
     res.json({
-        total: await db
-            .collection("orders")
-            .find(req.query)
-            .count(),
+        total: await orderTable.count(),
         page: page,
         perPage: perPage,
         records: validOrders

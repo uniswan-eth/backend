@@ -7,56 +7,56 @@ const MAX_ORDERS = 10;
 
 var possibleFinalPools = new Set();
 
-// "With my `bundle` of assets, and an orderbook of `orders`, what are all the possible asset bundles I can end up with?"
-function stateTransition(startingAssetData, orders, executedOrders) {
-    var options = []
-    for (let i = 0; i < orders.length; i++) {
-        const takerAssetsDecoded = assetDataUtils.decodeAssetDataOrThrow(
-            orders[i].takerAssetData
-        );
+// Simulate executing a swap order
+function executeOrder(ourAssets, order) {
+    const takerAssets = assetDataUtils.decodeAssetDataOrThrow(
+        order.takerAssetData
+    );
 
-        const ourAssetsDecoded = assetDataUtils.decodeAssetDataOrThrow(
-            startingAssetData
-        );
-
-        // Loop through all the assets wished for by the offer, and remove them from our asset pool
-        var orderFillable = true;
-        for (let j = 0; j < takerAssetsDecoded.nestedAssetData.length; j++) {
-            const index = ourAssetsDecoded.nestedAssetData.indexOf(takerAssetsDecoded.nestedAssetData[j]);
-            // If we have some of this asset, try and fill the order.
-            if (index > -1) {
-                ourAssetsDecoded.amounts[index] = ourAssetsDecoded.amounts[index].minus(takerAssetsDecoded.amounts[j]);
-                if (ourAssetsDecoded.amounts[index].toNumber() < 0) {
-                    orderFillable = false;
-                    break;
-                }
-            } else {
-                orderFillable = false;
-                break;
+    for (let i = 0; i < takerAssets.nestedAssetData.length; i++) {
+        const index = ourAssets.nestedAssetData.indexOf(takerAssets.nestedAssetData[i]);
+        if (index > -1) {
+            ourAssets.amounts[index] = ourAssets.amounts[index].minus(takerAssets.amounts[i]);
+            if (ourAssets.amounts[index].toNumber() < 0) {
+                return null;
             }
+        } else {
+            return null;
         }
+    }
 
-        if (orderFillable) {
-            const makerAssetsDecoded = assetDataUtils.decodeAssetDataOrThrow(
-                orders[i].makerAssetData
-            );
+    const makerAssets = assetDataUtils.decodeAssetDataOrThrow(
+        order.makerAssetData
+    );
 
-            // Loop through all the assets given in exchange by the offer, and add them to our asset pool
-            for (let j = 0; j < makerAssetsDecoded.nestedAssetData.length; j++) {
-                var index = ourAssetsDecoded.nestedAssetData.indexOf(makerAssetsDecoded.nestedAssetData[j]);
-                // If we don't already have some of this asset...
-                if (index === -1) {
-                    // Add it to our list
-                    index = ourAssetsDecoded.nestedAssetData.length;
-                    ourAssetsDecoded.nestedAssetData.push(makerAssetsDecoded.nestedAssetData[j]);
-                    ourAssetsDecoded.amounts.push(new BigNumber(0));
-                }
-                ourAssetsDecoded.amounts[index] = ourAssetsDecoded.amounts[index].plus(makerAssetsDecoded.amounts[j]);
-            }
+    for (let i = 0; i < makerAssets.nestedAssetData.length; i++) {
+        var index = ourAssets.nestedAssetData.indexOf(makerAssets.nestedAssetData[i]);
+        if (index === -1) {
+            index = ourAssets.nestedAssetData.length;
+            ourAssets.nestedAssetData.push(makerAssets.nestedAssetData[i]);
+            ourAssets.amounts.push(new BigNumber(0));
+        }
+        ourAssets.amounts[index] = ourAssets.amounts[index].plus(makerAssets.amounts[i]);
+    }
 
+    return ourAssets;
+}
+
+// "With my `ourAssetsEncoded` of assets, and an orderbook of `orders`, what are all the possible asset bundles I can end up with?"
+function findPossibleAssets(ourAssetsEncoded, orders, executedOrders) {
+    var options = []
+
+    const ourAssets = assetDataUtils.decodeAssetDataOrThrow(
+        ourAssetsEncoded
+    );
+
+    for (let i = 0; i < orders.length; i++) {
+        const newOurAssets = executeOrder(ourAssets, orders[i]);
+
+        if (newOurAssets) {
             const newOurAssetsEncoded = assetDataUtils.encodeMultiAssetData(
-                ourAssetsDecoded.amounts,
-                ourAssetsDecoded.nestedAssetData
+                newOurAssets.amounts,
+                newOurAssets.nestedAssetData
             );
 
             if (!possibleFinalPools.has(newOurAssetsEncoded)) {
@@ -68,10 +68,11 @@ function stateTransition(startingAssetData, orders, executedOrders) {
                 const ordersNew = orders.slice();
                 ordersNew.splice(i, 1);
 
-                if (newExecutedOrders.length < MAX_ORDERS) options.push(...stateTransition(newOurAssetsEncoded, ordersNew, newExecutedOrders));
+                if (newExecutedOrders.length < MAX_ORDERS) options.push(...findPossibleAssets(newOurAssetsEncoded, ordersNew, newExecutedOrders));
             }
         }
     }
+
     return options;
 }
 
@@ -85,7 +86,7 @@ export default async (req, res) => {
     const json = await orderClient.getOrdersAsync();
     const orders = json.records.map((r) => r.order);
 
-    const options = stateTransition(assetData, orders, [])
+    const options = findPossibleAssets(assetData, orders, [])
 
     res.json(options);
 };

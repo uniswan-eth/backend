@@ -43,7 +43,12 @@ function executeOrder(ourAssetsEncoded, order) {
         ourAssets.amounts[index] = ourAssets.amounts[index].plus(makerAssets.amounts[i]);
     }
 
-    return ourAssets;
+    const newOurAssetsEncoded = assetDataUtils.encodeMultiAssetData(
+        ourAssets.amounts,
+        ourAssets.nestedAssetData
+    );
+
+    return newOurAssetsEncoded;
 }
 
 // "With my `ourAssetsEncoded` of assets, and an orderbook of `orders`, what are all the possible asset bundles I can end up with?"
@@ -51,14 +56,9 @@ function findPossibleAssets(ourAssetsEncoded, orders, executedOrders) {
     var options = []
 
     for (let i = 0; i < orders.length; i++) {
-        const newOurAssets = executeOrder(ourAssetsEncoded, orders[i]);
+        const newOurAssetsEncoded = executeOrder(ourAssetsEncoded, orders[i]);
 
-        if (newOurAssets) {
-            const newOurAssetsEncoded = assetDataUtils.encodeMultiAssetData(
-                newOurAssets.amounts,
-                newOurAssets.nestedAssetData
-            );
-
+        if (newOurAssetsEncoded) {
             if (!possibleFinalPools.has(newOurAssetsEncoded)) {
                 possibleFinalPools.add(newOurAssetsEncoded);
 

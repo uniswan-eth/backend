@@ -8,9 +8,13 @@ const MAX_ORDERS = 10;
 var possibleFinalPools = new Set();
 
 // Simulate executing a swap order
-function executeOrder(ourAssets, order) {
+function executeOrder(ourAssetsEncoded, order) {
     const takerAssets = assetDataUtils.decodeAssetDataOrThrow(
         order.takerAssetData
+    );
+
+    const ourAssets = assetDataUtils.decodeAssetDataOrThrow(
+        ourAssetsEncoded
     );
 
     for (let i = 0; i < takerAssets.nestedAssetData.length; i++) {
@@ -46,12 +50,8 @@ function executeOrder(ourAssets, order) {
 function findPossibleAssets(ourAssetsEncoded, orders, executedOrders) {
     var options = []
 
-    const ourAssets = assetDataUtils.decodeAssetDataOrThrow(
-        ourAssetsEncoded
-    );
-
     for (let i = 0; i < orders.length; i++) {
-        const newOurAssets = executeOrder(ourAssets, orders[i]);
+        const newOurAssets = executeOrder(ourAssetsEncoded, orders[i]);
 
         if (newOurAssets) {
             const newOurAssetsEncoded = assetDataUtils.encodeMultiAssetData(
